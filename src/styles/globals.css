@@ -6,8 +6,8 @@
   box-sizing: border-box;
 }
 
+/* Dark theme (default) */
 :root {
-  /* FundedNext dark palette */
   --color-bg: #0b0d17;
   --color-surface: #141726;
   --color-surface-2: #1c2032;
@@ -20,14 +20,16 @@
 
   --color-accent: #7c5cff;
   --color-accent-hover: #6b4aef;
-  --color-accent-soft: rgba(124, 92, 255, 0.14);
+  --color-accent-soft: rgba(124, 92, 255, 0.16);
 
   --color-positive: #22c55e;
-  --color-positive-bg: rgba(34, 197, 94, 0.12);
+  --color-positive-bg: rgba(34, 197, 94, 0.14);
   --color-negative: #ef4444;
-  --color-negative-bg: rgba(239, 68, 68, 0.12);
+  --color-negative-bg: rgba(239, 68, 68, 0.14);
   --color-caution: #f59e0b;
-  --color-caution-bg: rgba(245, 158, 11, 0.12);
+  --color-caution-bg: rgba(245, 158, 11, 0.14);
+
+  --track: #1c2032;
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -36,6 +38,62 @@
 
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     sans-serif;
+}
+
+/* Light theme tokens */
+:root[data-theme="light"] {
+  --color-bg: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-surface-2: #f0f1f5;
+  --color-border: #e7e9ef;
+  --color-border-strong: #d6d9e3;
+
+  --color-text-primary: #12141c;
+  --color-text-secondary: #5b6478;
+  --color-text-muted: #8b93a7;
+
+  --color-accent: #6b4aef;
+  --color-accent-hover: #5a3ce0;
+  --color-accent-soft: rgba(107, 74, 239, 0.1);
+
+  --color-positive: #16a34a;
+  --color-positive-bg: rgba(22, 163, 74, 0.1);
+  --color-negative: #dc2626;
+  --color-negative-bg: rgba(220, 38, 38, 0.1);
+  --color-caution: #d97706;
+  --color-caution-bg: rgba(217, 119, 6, 0.12);
+
+  --track: #eceef3;
+  --shadow-md: 0 8px 24px rgba(20, 25, 40, 0.12);
+}
+
+/* Auto light when the OS asks for it and no explicit choice was made */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --color-bg: #f6f7f9;
+    --color-surface: #ffffff;
+    --color-surface-2: #f0f1f5;
+    --color-border: #e7e9ef;
+    --color-border-strong: #d6d9e3;
+
+    --color-text-primary: #12141c;
+    --color-text-secondary: #5b6478;
+    --color-text-muted: #8b93a7;
+
+    --color-accent: #6b4aef;
+    --color-accent-hover: #5a3ce0;
+    --color-accent-soft: rgba(107, 74, 239, 0.1);
+
+    --color-positive: #16a34a;
+    --color-positive-bg: rgba(22, 163, 74, 0.1);
+    --color-negative: #dc2626;
+    --color-negative-bg: rgba(220, 38, 38, 0.1);
+    --color-caution: #d97706;
+    --color-caution-bg: rgba(217, 119, 6, 0.12);
+
+    --track: #eceef3;
+    --shadow-md: 0 8px 24px rgba(20, 25, 40, 0.12);
+  }
 }
 
 html {
@@ -53,6 +111,7 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 body::-webkit-scrollbar {

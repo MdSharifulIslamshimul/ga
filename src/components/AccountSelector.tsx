@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Account, AccountKind, Phase } from "../types/account";
+import { Account, AccountKind, AccountStatus, Phase } from "../types/account";
 import { getHealth, HealthLevel } from "../lib/accountHealth";
 import { formatSize } from "../lib/format";
 
@@ -16,6 +16,13 @@ const kindLabel: Record<AccountKind, string> = {
   competition: "Competitions",
 };
 
+const statusStyle: Record<AccountStatus, { label: string; color: string; bg: string }> = {
+  active: { label: "Active", color: "var(--color-positive)", bg: "var(--color-positive-bg)" },
+  paused: { label: "Paused", color: "var(--color-caution)", bg: "var(--color-caution-bg)" },
+  breached: { label: "Breached", color: "var(--color-negative)", bg: "var(--color-negative-bg)" },
+  passed: { label: "Passed", color: "var(--color-accent)", bg: "var(--color-accent-soft)" },
+};
+
 const healthColor: Record<HealthLevel, string> = {
   safe: "var(--color-positive)",
   caution: "var(--color-caution)",
@@ -25,19 +32,26 @@ const healthColor: Record<HealthLevel, string> = {
 
 const kindOrder: AccountKind[] = ["cfd", "futures", "competition"];
 
-function HealthDot({ account }: { account: Account }) {
-  const level = getHealth(account).level;
+function StatusPill({ status }: { status: AccountStatus }) {
+  const s = statusStyle[status];
   return (
     <span
-      aria-hidden
       style={{
-        width: 7,
-        height: 7,
-        borderRadius: "50%",
-        background: healthColor[level],
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
         flexShrink: 0,
+        padding: "3px 9px",
+        borderRadius: 20,
+        fontSize: "11px",
+        fontWeight: 600,
+        color: s.color,
+        background: s.bg,
       }}
-    />
+    >
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.color }} />
+      {s.label}
+    </span>
   );
 }
 
@@ -47,18 +61,13 @@ interface AccountSelectorProps {
   onSelect: (account: Account) => void;
 }
 
-export function AccountSelector({
-  accounts,
-  current,
-  onSelect,
-}: AccountSelectorProps) {
+export function AccountSelector({ accounts, current, onSelect }: AccountSelectorProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node))
-        setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
@@ -74,10 +83,7 @@ export function AccountSelector({
   }, [open]);
 
   const groups = kindOrder
-    .map((kind) => ({
-      kind,
-      items: accounts.filter((a) => a.kind === kind),
-    }))
+    .map((kind) => ({ kind, items: accounts.filter((a) => a.kind === kind) }))
     .filter((g) => g.items.length > 0);
 
   return (
@@ -86,11 +92,11 @@ export function AccountSelector({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        aria-label={`Current account ${current.planName} ${formatSize(current.size)}. Switch account.`}
+        aria-label={`Current account ${current.planName} ${formatSize(current.size)}, ${statusStyle[current.status].label}. Switch account.`}
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 8,
+          gap: 10,
           padding: "10px 12px",
           borderRadius: "var(--radius-md)",
           background: "var(--color-surface)",
@@ -98,13 +104,12 @@ export function AccountSelector({
           width: "100%",
         }}
       >
-        <HealthDot account={current} />
         <span style={{ flex: 1, textAlign: "left", minWidth: 0 }}>
           <span
             style={{
               display: "block",
-              fontSize: "13px",
-              fontWeight: 600,
+              fontSize: "14px",
+              fontWeight: 700,
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -112,30 +117,19 @@ export function AccountSelector({
           >
             {current.planName} · {formatSize(current.size)}
           </span>
-          <span
-            style={{ fontSize: "11px", color: "var(--color-text-secondary)" }}
-          >
-            {phaseLabel[current.phase]} · {current.platform} · #{current.login}
+          <span style={{ fontSize: "11px", color: "var(--color-text-secondary)" }}>
+            {phaseLabel[current.phase]} · {current.platform}
           </span>
         </span>
+        <StatusPill status={current.status} />
         <svg
           width="12"
           height="12"
           viewBox="0 0 12 12"
           fill="none"
-          style={{
-            transform: open ? "rotate(180deg)" : "none",
-            transition: "transform 0.15s",
-            flexShrink: 0,
-          }}
+          style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s", flexShrink: 0 }}
         >
-          <path
-            d="M3 4.5L6 7.5L9 4.5"
-            stroke="var(--color-text-muted)"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <path d="M3 4.5L6 7.5L9 4.5" stroke="var(--color-text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
@@ -148,13 +142,13 @@ export function AccountSelector({
             top: "calc(100% + 4px)",
             left: 16,
             right: 16,
-            background: "var(--color-surface-2)",
+            background: "var(--color-surface)",
             border: "1px solid var(--color-border-strong)",
             borderRadius: "var(--radius-md)",
             boxShadow: "var(--shadow-md)",
             zIndex: 20,
             overflow: "hidden",
-            maxHeight: 340,
+            maxHeight: 320,
             overflowY: "auto",
             animation: "fadeIn 0.12s ease-out",
           }}
@@ -191,12 +185,19 @@ export function AccountSelector({
                       width: "100%",
                       padding: "9px 14px",
                       textAlign: "left",
-                      background: selected
-                        ? "var(--color-accent-soft)"
-                        : "transparent",
+                      background: selected ? "var(--color-accent-soft)" : "transparent",
                     }}
                   >
-                    <HealthDot account={account} />
+                    <span
+                      aria-hidden
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: "50%",
+                        background: healthColor[getHealth(account).level],
+                        flexShrink: 0,
+                      }}
+                    />
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span
                         style={{
@@ -210,12 +211,7 @@ export function AccountSelector({
                       >
                         {account.planName} · {formatSize(account.size)}
                       </span>
-                      <span
-                        style={{
-                          fontSize: "10px",
-                          color: "var(--color-text-muted)",
-                        }}
-                      >
+                      <span style={{ fontSize: "10px", color: "var(--color-text-muted)" }}>
                         {phaseLabel[account.phase]} · {account.platform}
                       </span>
                     </span>

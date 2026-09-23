@@ -2,18 +2,17 @@ import { useState, useEffect, useCallback } from "react";
 import { Account } from "./types/account";
 import { fetchAccounts, refreshAccount } from "./services/mockAccountService";
 import { Header } from "./components/Header";
-import { PortfolioStrip } from "./components/PortfolioStrip";
 import { AccountSelector } from "./components/AccountSelector";
 import { AccountSummary } from "./components/AccountSummary";
-import { ObjectivesList } from "./components/ObjectivesList";
-import { StatusBadge } from "./components/StatusBadge";
-import { CycleFooter } from "./components/CycleFooter";
+import { DrawdownSafety } from "./components/DrawdownSafety";
+import { ProgressBar } from "./components/ProgressBar";
+import { DetailsSection } from "./components/DetailsSection";
+import { UpdatedLabel } from "./components/UpdatedLabel";
 import { DashboardButton } from "./components/DashboardButton";
+import { formatCurrency } from "./lib/format";
 import { LoadingState, ErrorState, NoAccountState } from "./components/EmptyStates";
 
 type AppState = "loading" | "ready" | "error";
-
-const section: React.CSSProperties = { padding: "0 16px" };
 
 export default function App() {
   const [state, setState] = useState<AppState>("loading");
@@ -46,9 +45,7 @@ export default function App() {
     setRefreshing(true);
     try {
       const updated = await refreshAccount(current);
-      setAccounts((prev) =>
-        prev.map((a) => (a.id === updated.id ? updated : a))
-      );
+      setAccounts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
       setLastUpdated(new Date());
     } catch {
       /* keep stale data on failure */
@@ -66,39 +63,37 @@ export default function App() {
   if (state === "error" && accounts.length === 0) return <NoAccountState />;
   if (!current) return <ErrorState onRetry={loadAccounts} />;
 
+  const showProfitTarget =
+    current.profitTarget && current.profitTarget.target > 0;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: 480 }}>
       <Header onRefresh={handleRefresh} refreshing={refreshing} />
 
-      <PortfolioStrip
-        accounts={accounts}
-        currentId={current.id}
-        onSelect={handleSelect}
-      />
-
-      <div style={{ height: 8 }} />
-      <AccountSelector
-        accounts={accounts}
-        current={current}
-        onSelect={handleSelect}
-      />
-
-      <div style={{ height: 12 }} />
-      <AccountSummary account={current} />
+      <AccountSelector accounts={accounts} current={current} onSelect={handleSelect} />
 
       <div style={{ height: 14 }} />
-      <div style={section}>
-        <ObjectivesList account={current} />
+      <AccountSummary account={current} />
+
+      <div style={{ height: 16 }} />
+      <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <DrawdownSafety account={current} />
+        {showProfitTarget && (
+          <ProgressBar
+            label="Profit Target"
+            percent={(current.profitTarget!.current / current.profitTarget!.target) * 100}
+            caption={`${formatCurrency(Math.max(0, current.profitTarget!.current), 0)} / ${formatCurrency(current.profitTarget!.target, 0)}`}
+            color="var(--color-positive)"
+          />
+        )}
       </div>
 
-      <div style={{ height: 10 }} />
-      <div style={section}>
-        <StatusBadge account={current} />
-      </div>
+      <div style={{ height: 8 }} />
+      <DetailsSection account={current} />
 
-      <CycleFooter account={current} lastUpdated={lastUpdated} />
+      <UpdatedLabel lastUpdated={lastUpdated} />
 
-      <div style={{ marginTop: "auto" }}>
+      <div style={{ marginTop: "auto", paddingTop: 8 }}>
         <DashboardButton />
       </div>
     </div>

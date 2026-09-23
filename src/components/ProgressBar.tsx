@@ -62,7 +62,7 @@ export function ProgressBar({
         style={{
           height: 6,
           borderRadius: 3,
-          background: "var(--color-surface-2)",
+          background: "var(--track)",
           overflow: "hidden",
         }}
       >

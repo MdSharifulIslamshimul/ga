@@ -1,17 +1,21 @@
 # FundedNext Chrome Extension
 
-A lightweight Chrome extension that surfaces your FundedNext prop-firm account **health** at a glance. One click on the extension icon opens a compact dark dashboard showing the metrics that actually decide whether an account survives and passes — breach buffers, profit-target progress, and compliance — across all your CFD, Futures, and Competition accounts.
+A lightweight Chrome extension that surfaces your FundedNext prop-firm account **health** at a glance. One click on the extension icon opens a compact dashboard (light or dark) showing only the metrics that decide whether an account survives and passes — then tucks everything else behind a **Details** tap. Works across your CFD, Futures, and Competition accounts.
 
 **This is a UX/functional MVP with realistic mock data** shaped exactly like the real FundedNext API objectives. No authentication or live API calls yet.
 
 ## Why these metrics
 
-FundedNext accounts live or die by hard rules. The dashboard is organized around the two questions a trader asks every session:
+FundedNext accounts live or die by hard rules. The **first impression is deliberately minimal** — it answers the two questions a trader asks every session and nothing else:
 
-1. **Am I about to breach?** — Daily Loss and Max Loss shown as **risk gauges** (green → amber → red by % of buffer consumed, using live equity). Breaching kills the account.
-2. **Am I on track to pass / get paid?** — Profit Target progress, Min Trading Days, payout eligibility, and consistency/risk-card compliance that silently affect payouts.
+1. **Am I about to breach?** — Daily Loss and Max Loss shown as color-coded bars (green → amber → red by % of buffer consumed). Breaching kills the account.
+2. **Am I on track to pass / get paid?** — Profit Target progress.
 
-A **portfolio strip** on top flags how many accounts are near-breach or breached so you can jump straight to the one that needs attention.
+Plus the account (name · size · status) and balance/P&L. Secondary data — equity, floating P&L, min trading days, consistency, payout eligibility, the funded Risk Card, competition leaderboard, and trading-cycle dates — lives under **Details**, collapsed by default so the first screen never overwhelms.
+
+## Light & dark
+
+The popup follows your OS light/dark setting by default, and a toggle in the header overrides it (remembered via `localStorage`).
 
 ## Quick Start
 
@@ -31,9 +35,10 @@ npm run build
 
 ## Test the Extension
 
-- **Portfolio strip** — the bar under the logo shows total accounts + near-breach/breached counts. Click it to expand a health-sorted list and jump to any account.
-- **Switch accounts** — click the account row to open the selector, grouped by CFD / Futures / Competitions with a health dot each.
-- **Per-kind objectives** — CFD shows Daily/Max loss gauges, profit target, min days, consistency, and (funded) a Risk Card; Futures shows trailing max loss, consistency $, and max inactive days; Competitions show loss gauges, min days, and leaderboard rank.
+- **First impression** — account chip, balance + P&L, Daily/Max loss safety bars, and Profit Target. That's it.
+- **Theme toggle** — the sun/moon button in the header flips light ↔ dark; your choice is remembered.
+- **Switch accounts** — click the account chip to open the selector, grouped by CFD / Futures / Competitions with a health dot each.
+- **Details** — tap "Details" to reveal equity, floating P&L, min days, consistency, payout eligibility, funded Risk Card, competition leaderboard, and cycle dates.
 - **Refresh** — the header refresh icon nudges equity/balance and recomputes buffers to simulate live data; the timestamp resets to "Updated just now".
 - **Open Dashboard** — opens `fundednext.com/dashboard` in a new tab (the only action that opens a tab).
 
@@ -49,23 +54,23 @@ npm run build    # production build to dist/
 ```
 src/
   components/
-    Header.tsx          - Logo + refresh
-    PortfolioStrip.tsx  - Cross-account counts + health-sorted list
-    AccountSelector.tsx - Account switcher grouped by kind, with health dots
-    AccountSummary.tsx  - Balance hero + equity / floating P&L / initial
-    RiskGauge.tsx       - Loss-buffer gauge (green/amber/red by % consumed)
+    Header.tsx          - Logo + theme toggle + refresh
+    ThemeToggle.tsx     - Light/dark switch (persists to localStorage)
+    AccountSelector.tsx - Account chip + switcher grouped by kind, status pill
+    AccountSummary.tsx  - Balance hero + P&L
+    DrawdownSafety.tsx  - Daily/Max loss safety bars (green/amber/red)
     ProgressBar.tsx     - Profit target / min days / inactive days bars
-    ObjectivesList.tsx  - Renders the correct objective set per account kind
+    DetailsSection.tsx  - Collapsible secondary data (equity, consistency, risk card, ...)
     MetricCard.tsx      - Compact labelled metric (consistency, payout date)
     RiskCardRow.tsx     - Funded-only risk verdicts (quick strike / risk / news)
     LeaderboardRow.tsx  - Competition-only rank + percentile
-    StatusBadge.tsx     - Active / Paused / Breached / Passed + reason
-    CycleFooter.tsx     - Trading-cycle dates + "Updated X ago"
+    UpdatedLabel.tsx    - "Updated X ago"
     DashboardButton.tsx - Link to full dashboard
     EmptyStates.tsx     - Loading / error / no-account states
 
   lib/
-    accountHealth.ts    - getHealth() + portfolio summary (gauge colors + alerts)
+    accountHealth.ts    - getHealth() (bar colors) + portfolio summary
+    theme.ts            - Light/dark resolution + persistence
     format.ts           - currency / percent / size formatting
 
   services/
@@ -78,9 +83,9 @@ src/
     account.ts          - Account model, mirrors the API objectives schema
 
   constants.ts          - Dashboard URL + health thresholds
-  App.tsx               - Orchestrates strip + account dashboard
-  main.tsx              - Entry point
-  styles/globals.css    - FundedNext dark theme tokens
+  App.tsx               - Orchestrates the dashboard
+  main.tsx              - Entry point (applies theme before render)
+  styles/globals.css    - Light + dark theme tokens
 ```
 
 ## Connecting a Real API
