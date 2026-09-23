@@ -10,18 +10,18 @@ export function Header({ onRefresh, refreshing }: HeaderProps) {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "16px 20px 12px",
+        padding: "16px 16px 12px",
       }}
     >
       <span
         style={{
           fontSize: "15px",
-          fontWeight: 700,
+          fontWeight: 800,
           letterSpacing: "-0.01em",
-          color: "var(--color-text-primary)",
         }}
       >
-        FundedNext
+        FUNDED
+        <span style={{ color: "var(--color-accent)" }}>NEXT</span>
       </span>
       <button
         onClick={onRefresh}
@@ -34,21 +34,13 @@ export function Header({ onRefresh, refreshing }: HeaderProps) {
           alignItems: "center",
           justifyContent: "center",
           borderRadius: "var(--radius-sm)",
-          transition: "background 0.15s",
-          background: refreshing ? "transparent" : "transparent",
-        }}
-        onMouseEnter={(e) => {
-          if (!refreshing)
-            (e.currentTarget as HTMLElement).style.background =
-              "var(--color-border)";
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLElement).style.background = "transparent";
+          border: "1px solid var(--color-border)",
+          background: "var(--color-surface)",
         }}
       >
         <svg
-          width="16"
-          height="16"
+          width="15"
+          height="15"
           viewBox="0 0 16 16"
           fill="none"
           style={{

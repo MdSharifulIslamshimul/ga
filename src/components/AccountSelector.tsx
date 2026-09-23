@@ -1,8 +1,44 @@
 import { useState, useRef, useEffect } from "react";
-import { Account } from "../types/account";
+import { Account, AccountKind, Phase } from "../types/account";
+import { getHealth, HealthLevel } from "../lib/accountHealth";
+import { formatSize } from "../lib/format";
 
-function formatSize(size: number): string {
-  return `$${(size / 1000).toFixed(0)}K`;
+const phaseLabel: Record<Phase, string> = {
+  challenge_p1: "Challenge P1",
+  challenge_p2: "Challenge P2",
+  funded: "Funded",
+  competition: "Competition",
+};
+
+const kindLabel: Record<AccountKind, string> = {
+  cfd: "CFD",
+  futures: "Futures",
+  competition: "Competitions",
+};
+
+const healthColor: Record<HealthLevel, string> = {
+  safe: "var(--color-positive)",
+  caution: "var(--color-caution)",
+  danger: "var(--color-negative)",
+  breached: "var(--color-negative)",
+};
+
+const kindOrder: AccountKind[] = ["cfd", "futures", "competition"];
+
+function HealthDot({ account }: { account: Account }) {
+  const level = getHealth(account).level;
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: 7,
+        height: 7,
+        borderRadius: "50%",
+        background: healthColor[level],
+        flexShrink: 0,
+      }}
+    />
+  );
 }
 
 interface AccountSelectorProps {
@@ -20,68 +56,66 @@ export function AccountSelector({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node))
         setOpen(false);
-      }
     }
-    if (open) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
-
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
+    function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
-    if (open) document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    if (open) {
+      document.addEventListener("mousedown", onClickOutside);
+      document.addEventListener("keydown", onKey);
+    }
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
+  const groups = kindOrder
+    .map((kind) => ({
+      kind,
+      items: accounts.filter((a) => a.kind === kind),
+    }))
+    .filter((g) => g.items.length > 0);
+
   return (
-    <div ref={ref} style={{ position: "relative", padding: "0 20px" }}>
+    <div ref={ref} style={{ position: "relative", padding: "0 16px" }}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        aria-label={`Current account: ${current.name} ${formatSize(current.size)}. Click to switch accounts.`}
+        aria-label={`Current account ${current.planName} ${formatSize(current.size)}. Switch account.`}
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 6,
-          padding: "8px 12px",
-          borderRadius: "var(--radius-sm)",
+          gap: 8,
+          padding: "10px 12px",
+          borderRadius: "var(--radius-md)",
           background: "var(--color-surface)",
           border: "1px solid var(--color-border)",
           width: "100%",
-          transition: "border-color 0.15s",
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLElement).style.borderColor =
-            "var(--color-text-muted)";
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLElement).style.borderColor =
-            "var(--color-border)";
         }}
       >
-        <span
-          style={{
-            flex: 1,
-            textAlign: "left",
-            fontSize: "13px",
-            fontWeight: 600,
-            color: "var(--color-text-primary)",
-          }}
-        >
-          {current.name}
+        <HealthDot account={current} />
+        <span style={{ flex: 1, textAlign: "left", minWidth: 0 }}>
           <span
             style={{
-              fontWeight: 400,
-              color: "var(--color-text-secondary)",
-              marginLeft: 6,
+              display: "block",
+              fontSize: "13px",
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
           >
-            · {formatSize(current.size)}
+            {current.planName} · {formatSize(current.size)}
+          </span>
+          <span
+            style={{ fontSize: "11px", color: "var(--color-text-secondary)" }}
+          >
+            {phaseLabel[current.phase]} · {current.platform} · #{current.login}
           </span>
         </span>
         <svg
@@ -90,8 +124,9 @@ export function AccountSelector({
           viewBox="0 0 12 12"
           fill="none"
           style={{
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transform: open ? "rotate(180deg)" : "none",
             transition: "transform 0.15s",
+            flexShrink: 0,
           }}
         >
           <path
@@ -111,65 +146,84 @@ export function AccountSelector({
           style={{
             position: "absolute",
             top: "calc(100% + 4px)",
-            left: 20,
-            right: 20,
-            background: "var(--color-surface)",
-            border: "1px solid var(--color-border)",
+            left: 16,
+            right: 16,
+            background: "var(--color-surface-2)",
+            border: "1px solid var(--color-border-strong)",
             borderRadius: "var(--radius-md)",
             boxShadow: "var(--shadow-md)",
-            zIndex: 10,
+            zIndex: 20,
             overflow: "hidden",
+            maxHeight: 340,
+            overflowY: "auto",
             animation: "fadeIn 0.12s ease-out",
           }}
         >
-          {accounts.map((account) => {
-            const isSelected = account.id === current.id;
-            return (
-              <button
-                key={account.id}
-                role="option"
-                aria-selected={isSelected}
-                onClick={() => {
-                  onSelect(account);
-                  setOpen(false);
-                }}
+          {groups.map((group) => (
+            <div key={group.kind}>
+              <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  width: "100%",
-                  padding: "10px 14px",
-                  fontSize: "13px",
-                  background: isSelected
-                    ? "var(--color-bg)"
-                    : "var(--color-surface)",
-                  transition: "background 0.1s",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSelected)
-                    (e.currentTarget as HTMLElement).style.background =
-                      "var(--color-bg)";
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSelected)
-                    (e.currentTarget as HTMLElement).style.background =
-                      "var(--color-surface)";
+                  padding: "8px 14px 4px",
+                  fontSize: "10px",
+                  fontWeight: 600,
+                  color: "var(--color-text-muted)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
                 }}
               >
-                <span style={{ fontWeight: isSelected ? 600 : 400 }}>
-                  {account.name}
-                </span>
-                <span
-                  style={{
-                    color: "var(--color-text-secondary)",
-                    fontSize: "12px",
-                  }}
-                >
-                  {formatSize(account.size)}
-                </span>
-              </button>
-            );
-          })}
+                {kindLabel[group.kind]}
+              </div>
+              {group.items.map((account) => {
+                const selected = account.id === current.id;
+                return (
+                  <button
+                    key={account.id}
+                    role="option"
+                    aria-selected={selected}
+                    onClick={() => {
+                      onSelect(account);
+                      setOpen(false);
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      width: "100%",
+                      padding: "9px 14px",
+                      textAlign: "left",
+                      background: selected
+                        ? "var(--color-accent-soft)"
+                        : "transparent",
+                    }}
+                  >
+                    <HealthDot account={account} />
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span
+                        style={{
+                          display: "block",
+                          fontSize: "12px",
+                          fontWeight: selected ? 600 : 500,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {account.planName} · {formatSize(account.size)}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          color: "var(--color-text-muted)",
+                        }}
+                      >
+                        {phaseLabel[account.phase]} · {account.platform}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </div>
       )}
     </div>

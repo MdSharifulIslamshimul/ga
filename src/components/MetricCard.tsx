@@ -1,13 +1,15 @@
 interface MetricCardProps {
   label: string;
   value: string;
+  valueColor?: string;
+  caption?: string;
 }
 
-export function MetricCard({ label, value }: MetricCardProps) {
+export function MetricCard({ label, value, valueColor, caption }: MetricCardProps) {
   return (
     <div
       style={{
-        padding: "14px 16px",
+        padding: "12px 14px",
         background: "var(--color-surface)",
         borderRadius: "var(--radius-md)",
         border: "1px solid var(--color-border)",
@@ -27,14 +29,21 @@ export function MetricCard({ label, value }: MetricCardProps) {
       </div>
       <div
         style={{
-          fontSize: "18px",
+          fontSize: "16px",
           fontWeight: 700,
-          color: "var(--color-text-primary)",
+          color: valueColor ?? "var(--color-text-primary)",
           letterSpacing: "-0.01em",
         }}
       >
         {value}
       </div>
+      {caption && (
+        <div
+          style={{ fontSize: "10px", color: "var(--color-text-muted)", marginTop: 2 }}
+        >
+          {caption}
+        </div>
+      )}
     </div>
   );
 }

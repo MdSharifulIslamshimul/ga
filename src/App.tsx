@@ -2,24 +2,18 @@ import { useState, useEffect, useCallback } from "react";
 import { Account } from "./types/account";
 import { fetchAccounts, refreshAccount } from "./services/mockAccountService";
 import { Header } from "./components/Header";
+import { PortfolioStrip } from "./components/PortfolioStrip";
 import { AccountSelector } from "./components/AccountSelector";
 import { AccountSummary } from "./components/AccountSummary";
-import { MetricCard } from "./components/MetricCard";
+import { ObjectivesList } from "./components/ObjectivesList";
 import { StatusBadge } from "./components/StatusBadge";
-import { Timestamp } from "./components/Timestamp";
+import { CycleFooter } from "./components/CycleFooter";
 import { DashboardButton } from "./components/DashboardButton";
-import { LoadingState, ErrorState } from "./components/EmptyStates";
+import { LoadingState, ErrorState, NoAccountState } from "./components/EmptyStates";
 
 type AppState = "loading" | "ready" | "error";
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+const section: React.CSSProperties = { padding: "0 16px" };
 
 export default function App() {
   const [state, setState] = useState<AppState>("loading");
@@ -28,16 +22,16 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const currentAccount = accounts.find((a) => a.id === selectedId) ?? null;
+  const current = accounts.find((a) => a.id === selectedId) ?? null;
 
   const loadAccounts = useCallback(async () => {
     setState("loading");
     try {
       const data = await fetchAccounts();
       setAccounts(data);
-      setSelectedId(data[0]?.id ?? null);
+      setSelectedId((prev) => prev ?? data[0]?.id ?? null);
       setLastUpdated(new Date());
-      setState("ready");
+      setState(data.length > 0 ? "ready" : "error");
     } catch {
       setState("error");
     }
@@ -48,73 +42,61 @@ export default function App() {
   }, [loadAccounts]);
 
   const handleRefresh = useCallback(async () => {
-    if (!currentAccount || refreshing) return;
+    if (!current || refreshing) return;
     setRefreshing(true);
     try {
-      const updated = await refreshAccount(currentAccount);
+      const updated = await refreshAccount(current);
       setAccounts((prev) =>
         prev.map((a) => (a.id === updated.id ? updated : a))
       );
       setLastUpdated(new Date());
     } catch {
-      /* swallow — keep showing stale data */
+      /* keep stale data on failure */
     } finally {
       setRefreshing(false);
     }
-  }, [currentAccount, refreshing]);
+  }, [current, refreshing]);
 
-  const handleSelectAccount = useCallback(
-    (account: Account) => {
-      setSelectedId(account.id);
-      setLastUpdated(new Date());
-    },
-    []
-  );
+  const handleSelect = useCallback((account: Account) => {
+    setSelectedId(account.id);
+    setLastUpdated(new Date());
+  }, []);
 
   if (state === "loading") return <LoadingState />;
-  if (state === "error") return <ErrorState onRetry={loadAccounts} />;
-  if (!currentAccount) return <ErrorState onRetry={loadAccounts} />;
+  if (state === "error" && accounts.length === 0) return <NoAccountState />;
+  if (!current) return <ErrorState onRetry={loadAccounts} />;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 0,
-        minHeight: 480,
-      }}
-    >
+    <div style={{ display: "flex", flexDirection: "column", minHeight: 480 }}>
       <Header onRefresh={handleRefresh} refreshing={refreshing} />
+
+      <PortfolioStrip
+        accounts={accounts}
+        currentId={current.id}
+        onSelect={handleSelect}
+      />
+
+      <div style={{ height: 8 }} />
       <AccountSelector
         accounts={accounts}
-        current={currentAccount}
-        onSelect={handleSelectAccount}
+        current={current}
+        onSelect={handleSelect}
       />
-      <AccountSummary account={currentAccount} />
 
-      <div
-        style={{
-          padding: "20px 20px 0",
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 10,
-        }}
-      >
-        <MetricCard
-          label="Daily DD Remaining"
-          value={formatCurrency(currentAccount.dailyDrawdownRemaining)}
-        />
-        <MetricCard
-          label="Max DD Remaining"
-          value={formatCurrency(currentAccount.maxDrawdownRemaining)}
-        />
+      <div style={{ height: 12 }} />
+      <AccountSummary account={current} />
+
+      <div style={{ height: 14 }} />
+      <div style={section}>
+        <ObjectivesList account={current} />
       </div>
 
-      <div style={{ padding: "12px 0 0" }}>
-        <StatusBadge status={currentAccount.status} />
+      <div style={{ height: 10 }} />
+      <div style={section}>
+        <StatusBadge account={current} />
       </div>
 
-      <Timestamp lastUpdated={lastUpdated} />
+      <CycleFooter account={current} lastUpdated={lastUpdated} />
 
       <div style={{ marginTop: "auto" }}>
         <DashboardButton />

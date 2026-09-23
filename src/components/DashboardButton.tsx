@@ -1,43 +1,40 @@
 import { DASHBOARD_URL } from "../constants";
 
-export function DashboardButton() {
-  function handleClick() {
-    if (typeof chrome !== "undefined" && chrome.tabs) {
-      chrome.tabs.create({ url: DASHBOARD_URL });
-    } else {
-      window.open(DASHBOARD_URL, "_blank");
-    }
+function openDashboard() {
+  if (typeof chrome !== "undefined" && chrome.tabs) {
+    chrome.tabs.create({ url: DASHBOARD_URL });
+  } else {
+    window.open(DASHBOARD_URL, "_blank");
   }
+}
 
+export function DashboardButton() {
   return (
-    <div style={{ padding: "0 20px 20px" }}>
+    <div style={{ padding: "0 16px 16px" }}>
       <button
-        onClick={handleClick}
+        onClick={openDashboard}
         aria-label="Open full FundedNext dashboard in a new tab"
         style={{
           width: "100%",
           padding: "12px 16px",
           fontSize: "13px",
           fontWeight: 600,
-          color: "var(--color-accent)",
-          background: "var(--color-surface)",
-          border: "1px solid var(--color-border)",
+          color: "#fff",
+          background: "var(--color-accent)",
           borderRadius: "var(--radius-md)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           gap: 6,
-          transition: "background 0.15s, border-color 0.15s",
+          transition: "background 0.15s",
         }}
         onMouseEnter={(e) => {
-          const el = e.currentTarget as HTMLElement;
-          el.style.background = "var(--color-bg)";
-          el.style.borderColor = "var(--color-text-muted)";
+          (e.currentTarget as HTMLElement).style.background =
+            "var(--color-accent-hover)";
         }}
         onMouseLeave={(e) => {
-          const el = e.currentTarget as HTMLElement;
-          el.style.background = "var(--color-surface)";
-          el.style.borderColor = "var(--color-border)";
+          (e.currentTarget as HTMLElement).style.background =
+            "var(--color-accent)";
         }}
       >
         Open Full Dashboard
